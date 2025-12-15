@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Tetris Game</title>
+    
+    <style>
+        /* 전체 레이아웃 설정 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #282c34;
+            color: white;
+            font-family: monospace;
+            margin: 0;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            padding: 20px;
+            border: 5px solid #61dafb;
+            background-color: #383c44;
+            border-radius: 8px;
+        }
+
+        /* 게임 보드 스타일 (주요 부분) */
+        #game-board {
+            /* 10x20 그리드 정의 */
+            display: grid;
+            grid-template-columns: repeat(10, 30px); /* 10열, 각 셀 30px */
+            grid-template-rows: repeat(20, 30px);    /* 20행, 각 셀 30px */
+            width: 300px; /* 10 * 30px */
+            height: 600px; /* 20 * 30px */
+            border: 2px solid #aaa;
+            background-color: #000;
+        }
+
+        /* 각 셀 (블록 조각) 스타일 */
+        .cell {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 실제 테트로미노 블록을 위한 스타일 */
+        .block {
+            border: 2px solid rgba(0, 0, 0, 0.4);
+            box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        /* 블록 색상 정의 */
+        .i-block { background-color: cyan; }
+        .j-block { background-color: blue; }
+        .l-block { background-color: orange; }
+        .o-block { background-color: yellow; }
+        .s-block { background-color: limegreen; }
+        .t-block { background-color: purple; }
+        .z-block { background-color: red; }
+
+        /* 정보 패널 스타일 */
+        .info-panel {
+            width: 150px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-top: 50px; /* 보드와 높이 맞추기 */
+        }
+
+        #next-block {
+            /* 다음 블록을 표시하는 4x4 그리드 */
+            display: grid;
+            grid-template-columns: repeat(4, 20px);
+            grid-template-rows: repeat(4, 20px);
+            width: 80px;
+            height: 80px;
+            border: 1px dashed #aaa;
+            padding: 5px;
+            background-color: #111;
+        }
+
+        #next-block .cell {
+            border: none;
+        }
+
+        #start-button {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            cursor: pointer;
+            background-color: #61dafb;
+            color: #282c34;
+            border: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="game-board">
+            </div>
+
+        <div class="info-panel">
+            <h2>테트리스</h2>
+            <hr>
+            <h3>Score: <span id="score">0</span></h3>
+            <h3>Next:</h3>
+            <div id="next-block">
+                </div>
+            <button id="start-button">Start Game</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 게임 설정 상수 ---
+        const COLS = 10;
+        const ROWS = 20;
+        const gameBoard = document.getElementById('game-board');
+        const scoreDisplay = document.getElementById('score');
+        const startButton = document.getElementById('start-button');
+        
+        let gameGrid = [];      // 게임판의 상태를 저장할 2차원 배열 (0: 비어있음)
+        let score = 0;
+        let currentBlock = null; 
+        let gameInterval;
+
+        // --- 테트로미노 정의 (간단하게 3개만 정의) ---
+        const TETROMINOES = [
+            // T 블록
+            { matrix: [[0,1,0],[1,1,1],[0,0,0]], color: 't-block' }, 
+            // O 블록
+            { matrix: [[1,1],[1,1]], color: 'o-block' }, 
+            // I 블록
+            { matrix: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: 'i-block' },
+            // ... 나머지 L, J, S, Z 블록 추가 필요
+        ];
+
+        // 1. 게임판 초기화 (HTML DOM 생성 및 배열 초기화)
+        function initBoard() {
+            gameGrid = [];
+            gameBoard.innerHTML = '';
+            
+            for (let r = 0; r < ROWS; r++) {
+                gameGrid[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    // HTML 셀 생성
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    // data-속성은 디버깅에 유용합니다.
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    gameBoard.appendChild(cell);
+                    
+                    // 상태 배열 초기화
+                    gameGrid[r][c] = 0;
+                }
+            }
+            score = 0;
+            scoreDisplay.textContent = score;
+        }
+
+        // 2. 블록 객체 생성 (현재는 임시)
+        function getRandomBlock() {
+            const index = Math.floor(Math.random() * TETROMINOES.length);
+            const blockType = TETROMINOES[index];
+            
+            // 블록 객체 반환 (위치, 모양, 색상 포함)
+            return {
+                matrix: blockType.matrix,
+                color: blockType.color,
+                row: 0, // 시작 행
+                col: Math.floor(COLS / 2) - Math.floor(blockType.matrix[0].length / 2) // 중앙 시작 열
+            };
+        }
+
+        // 3. 블록 그리기/지우기 처리
+        function updateBoard(block, type = 'draw') {
+            const method = type === 'draw' ? 'add' : 'remove';
+
+            for (let r = 0; r < block.matrix.length; r++) {
+                for (let c = 0; c < block.matrix[r].length; c++) {
+                    if (block.matrix[r][c]) {
+                        const boardRow = block.row + r;
+                        const boardCol = block.col + c;
+
+                        // 게임판 범위 내에 있을 때만 처리
+                        if (boardRow >= 0 && boardRow < ROWS && boardCol >= 0 && boardCol < COLS) {
+                            const cellIndex = boardRow * COLS + boardCol;
+                            const cell = gameBoard.children[cellIndex];
+                            
+                            cell.classList[method]('block');
+                            cell.classList[method](block.color);
+                            
+                            // 블록을 고정할 때 (TODO: type === 'merge' 로직 추가 필요)
+                            if (type === 'merge') {
+                                gameGrid[boardRow][boardCol] = block.color;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. 블록 하강 (게임 루프의 핵심)
+        function moveBlockDown() {
+            if (!currentBlock) return;
+
+            // 1. 현재 블록을 지우고
+            updateBoard(currentBlock, 'erase');
+
+            // TODO: 2. 충돌 감지 로직 추가 (아래에 닿았는지?)
+            // if (isCollision(currentBlock.row + 1, currentBlock.col, currentBlock.matrix)) {
+            //     updateBoard(currentBlock, 'merge'); // 충돌 시 고정 (TODO)
+            //     // checkLinesAndClear(); (TODO)
+            //     currentBlock = getRandomBlock(); 
+            // } else {
+            //     currentBlock.row++; // 충돌 없으면 한 칸 하강
+            // }
+            currentBlock.row++; // 일단 하강 (충돌 로직 없으면 무한 하강)
+
+            // 3. 새 위치에 다시 그리기
+            updateBoard(currentBlock, 'draw');
+        }
+
+        // 5. 게임 시작 함수
+        function startGame() {
+            if (gameInterval) clearInterval(gameInterval); // 기존 루프 중지
+            initBoard();
+            
+            currentBlock = getRandomBlock();
+            updateBoard(currentBlock, 'draw');
+
+            // 1초 간격으로 블록이 떨어지게 설정
+            gameInterval = setInterval(moveBlockDown, 1000); 
+            console.log("Game Started!");
+        }
+
+        // 6. 키보드 이벤트 리스너 (임시)
+        document.addEventListener('keydown', (e) => {
+            if (!currentBlock) return;
+
+            if (e.key === 'ArrowLeft') {
+                // TODO: 왼쪽 이동 로직 및 충돌 검사
+                console.log("Left pressed");
+            } else if (e.key === 'ArrowRight') {
+                // TODO: 오른쪽 이동 로직 및 충돌 검사
+                console.log("Right pressed");
+            } else if (e.key === 'ArrowDown') {
+                // TODO: 빠른 하강 로직
+                moveBlockDown(); // 일단 바로 하강
+            } else if (e.key === 'ArrowUp') {
+                // TODO: 회전 로직
+                console.log("Rotate pressed");
+            }
+        });
+
+        startButton.addEventListener('click', startGame);
+
+        // 페이지 로드 시 초기 화면 준비
+        initBoard(); 
+    </script>
+</body>
+</html>
