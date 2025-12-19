@@ -1,119 +1,131 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>릴라의 테트리스</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #282c34;
-            color: white;
-            font-family: 'Malgun Gothic', sans-serif;
-            margin: 0;
-            overflow: hidden;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>릴라의 테트리스</title>
 
-        .game-container {
-            display: flex;
-            gap: 30px;
-            padding: 20px;
-            border: 5px solid #61dafb;
-            background-color: #383c44;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
+<style>
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #282c34;
+    color: white;
+    font-family: 'Malgun Gothic', sans-serif;
+    margin: 0;
+}
 
-        #game-board {
-            display: grid;
-            grid-template-columns: repeat(10, 30px);
-            grid-template-rows: repeat(20, 30px);
-            width: 300px;
-            height: 600px;
-            border: 2px solid #aaa;
-            background-color: #000;
-        }
+.game-container {
+    display: flex;
+    gap: 30px;
+    padding: 20px;
+    border: 5px solid #61dafb;
+    background-color: #383c44;
+    border-radius: 8px;
+}
 
-        .next-preview {
-            width: 100px;
-            height: 100px;
-            background: #111;
-            border: 2px solid #555;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(4, 1fr);
-            margin: 10px auto;
-        }
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(10, 30px);
+    grid-template-rows: repeat(20, 30px);
+    width: 300px;
+    height: 600px;
+    background: black;
+    border: 2px solid #aaa;
+}
 
-        .cell {
-            width: 30px;
-            height: 30px;
-            box-sizing: border-box;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
+.cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
 
-        .preview-cell {
-            width: 25px;
-            height: 25px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
+.block {
+    border: 2px solid rgba(0,0,0,0.3);
+    box-shadow: inset 0 0 8px rgba(255,255,255,0.4);
+}
 
-        .block {
-            border: 2px solid rgba(0, 0, 0, 0.3);
-            box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4);
-        }
+.i-block { background:#00f0f0; }
+.j-block { background:#0000f0; }
+.l-block { background:#f0a000; }
+.o-block { background:#f0f000; }
+.s-block { background:#00f000; }
+.t-block { background:#a000f0; }
+.z-block { background:#f00000; }
 
-        .i-block { background-color: #00f0f0; }
-        .j-block { background-color: #0000f0; }
-        .l-block { background-color: #f0a000; }
-        .o-block { background-color: #f0f000; }
-        .s-block { background-color: #00f000; }
-        .t-block { background-color: #a000f0; }
-        .z-block { background-color: #f00000; }
+.info-panel {
+    width: 180px;
+    text-align: center;
+}
 
-        .info-panel {
-            width: 180px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            text-align: center;
-        }
+.next-preview {
+    width: 100px;
+    height: 100px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    grid-template-rows: repeat(4,1fr);
+    background:#111;
+    border:2px solid #555;
+}
 
-        h2 {
-            color: #61dafb;
-            margin-top: 0;
-        }
+.preview-cell {
+    border:1px solid rgba(255,255,255,0.05);
+}
 
-        #start-button {
-            padding: 12px 20px;
-            font-size: 1.1em;
-            cursor: pointer;
-            background-color: #61dafb;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            transition: 0.2s;
-        }
+button {
+    cursor:pointer;
+    font-weight:bold;
+}
 
-        #start-button:hover {
-            background-color: #4fa8c7;
-            transform: scale(1.05);
-        }
+#start-button {
+    padding: 10px;
+    background:#61dafb;
+    border:none;
+    border-radius:5px;
+    margin-top:10px;
+}
 
-        .controls-info {
-            font-size: 0.85em;
-            color: #ccc;
-            background: #222;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: left;
-            line-height: 1.6;
-        }
-    </style>
+/* 📱 모바일 컨트롤 */
+.mobile-controls {
+    position: fixed;
+    bottom: 15px;
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.mobile-controls .row {
+    display: flex;
+    gap: 10px;
+}
+
+.mobile-controls button {
+    width: 60px;
+    height: 60px;
+    font-size: 1.4em;
+    border-radius: 10px;
+    border: none;
+    background: #61dafb;
+}
+
+.mobile-controls .drop {
+    width: 200px;
+}
+
+/* 모바일에서만 표시 */
+@media (max-width: 768px) {
+    .mobile-controls {
+        display: flex;
+    }
+}
+</style>
 </head>
+
 <body>
 
 <div class="game-container">
@@ -122,202 +134,190 @@
     <div class="info-panel">
         <h2>릴라의 테트리스</h2>
 
-        <div style="background:#222; padding:5px; border-radius:5px;">
-            <div style="font-size:0.8em; margin-bottom:5px;">NEXT</div>
-            <div id="next-preview" class="next-preview"></div>
-        </div>
-
-        <hr style="border:0.5px solid #555; width:100%;">
+        <div class="next-preview" id="next-preview"></div>
 
         <h3>Score: <span id="score">0</span></h3>
 
-        <div class="controls-info">
-            <strong>[ 조작 방법 ]</strong><br>
-            ← → : 이동 / ↑ : 회전<br>
-            ↓ : 내리기 / Space : 낙하
-        </div>
+        <p style="font-size:0.8em">
+            ← → 이동<br>
+            ↑ 회전<br>
+            ↓ 내리기<br>
+            Space 낙하
+        </p>
 
         <button id="start-button">게임 시작</button>
     </div>
 </div>
 
+<!-- 📱 모바일 버튼 -->
+<div class="mobile-controls">
+    <div class="row">
+        <button data-action="rotate">↑</button>
+    </div>
+    <div class="row">
+        <button data-action="left">←</button>
+        <button data-action="down">↓</button>
+        <button data-action="right">→</button>
+    </div>
+    <div class="row">
+        <button data-action="drop" class="drop">DROP</button>
+    </div>
+</div>
+
 <script>
-const COLS = 10, ROWS = 20;
-const gameBoard = document.getElementById('game-board');
-const nextPreview = document.getElementById('next-preview');
-const scoreDisplay = document.getElementById('score');
-const startButton = document.getElementById('start-button');
+const COLS=10, ROWS=20;
+const board=document.getElementById('game-board');
+const preview=document.getElementById('next-preview');
+const scoreEl=document.getElementById('score');
+const startBtn=document.getElementById('start-button');
 
-let gameGrid = [];
-let score = 0;
-let currentBlock = null;
-let nextBlockData = null;
-let gameInterval = null;
+let grid=[], current=null, next=null, score=0, interval=null;
 
-const TETROMINOES = [
-    { matrix: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: 'i-block' },
-    { matrix: [[1,1],[1,1]], color: 'o-block' },
-    { matrix: [[0,1,0],[1,1,1],[0,0,0]], color: 't-block' },
-    { matrix: [[0,1,1],[1,1,0],[0,0,0]], color: 's-block' },
-    { matrix: [[1,1,0],[0,1,1],[0,0,0]], color: 'z-block' },
-    { matrix: [[1,0,0],[1,1,1],[0,0,0]], color: 'j-block' },
-    { matrix: [[0,0,1],[1,1,1],[0,0,0]], color: 'l-block' }
+const SHAPES=[
+ {m:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],c:'i-block'},
+ {m:[[1,1],[1,1]],c:'o-block'},
+ {m:[[0,1,0],[1,1,1],[0,0,0]],c:'t-block'},
+ {m:[[0,1,1],[1,1,0],[0,0,0]],c:'s-block'},
+ {m:[[1,1,0],[0,1,1],[0,0,0]],c:'z-block'},
+ {m:[[1,0,0],[1,1,1],[0,0,0]],c:'j-block'},
+ {m:[[0,0,1],[1,1,1],[0,0,0]],c:'l-block'}
 ];
 
-function initBoard() {
-    gameGrid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-    score = 0;
-    scoreDisplay.textContent = score;
-    render();
+function init(){
+    grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    score=0;
+    scoreEl.textContent=score;
+    draw();
 }
 
-function createNewBlock() {
-    const type = TETROMINOES[Math.floor(Math.random() * TETROMINOES.length)];
-    return {
-        matrix: JSON.parse(JSON.stringify(type.matrix)),
-        color: type.color,
-        row: 0,
-        col: Math.floor(COLS / 2) - Math.floor(type.matrix[0].length / 2)
-    };
+function newBlock(){
+    const t=SHAPES[Math.floor(Math.random()*7)];
+    return {m:JSON.parse(JSON.stringify(t.m)),c:t.c,r:0,col:3};
 }
 
-function canMove(row, col, matrix) {
-    for (let r = 0; r < matrix.length; r++) {
-        for (let c = 0; c < matrix[r].length; c++) {
-            if (matrix[r][c]) {
-                const newRow = row + r;
-                const newCol = col + c;
-                if (
-                    newCol < 0 ||
-                    newCol >= COLS ||
-                    newRow >= ROWS ||
-                    (newRow >= 0 && gameGrid[newRow][newCol])
-                ) return false;
-            }
+function canMove(r,c,m){
+    for(let y=0;y<m.length;y++)
+    for(let x=0;x<m[y].length;x++)
+        if(m[y][x]){
+            const nr=r+y,nc=c+x;
+            if(nc<0||nc>=COLS||nr>=ROWS||(nr>=0&&grid[nr][nc])) return false;
         }
-    }
     return true;
 }
 
-function moveBlockDown() {
-    if (canMove(currentBlock.row + 1, currentBlock.col, currentBlock.matrix)) {
-        currentBlock.row++;
-    } else {
-        freeze();
-        currentBlock = nextBlockData;
-        nextBlockData = createNewBlock();
-        drawNextPreview();
-
-        if (!canMove(currentBlock.row, currentBlock.col, currentBlock.matrix)) {
-            alert(`릴라의 테트리스 - 게임 오버!\n최종 점수: ${score}`);
-            clearInterval(gameInterval);
-            currentBlock = null;
-            return;
-        }
-    }
-    render();
-}
-
-function freeze() {
-    currentBlock.matrix.forEach((row, r) => {
-        row.forEach((value, c) => {
-            if (value) {
-                gameGrid[currentBlock.row + r][currentBlock.col + c] = currentBlock.color;
-            }
+function freeze(){
+    current.m.forEach((row,y)=>{
+        row.forEach((v,x)=>{
+            if(v) grid[current.r+y][current.col+x]=current.c;
         });
     });
 
-    for (let r = ROWS - 1; r >= 0; r--) {
-        if (gameGrid[r].every(cell => cell !== 0)) {
-            gameGrid.splice(r, 1);
-            gameGrid.unshift(Array(COLS).fill(0));
-            score += 100;
-            scoreDisplay.textContent = score;
+    for(let r=ROWS-1;r>=0;r--){
+        if(grid[r].every(v=>v)){
+            grid.splice(r,1);
+            grid.unshift(Array(COLS).fill(0));
+            score+=100;
+            scoreEl.textContent=score;
             r++;
         }
     }
 }
 
-function render() {
-    gameBoard.innerHTML = '';
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell' + (gameGrid[r][c] ? ' block ' + gameGrid[r][c] : '');
-            gameBoard.appendChild(cell);
+function down(){
+    if(canMove(current.r+1,current.col,current.m)) current.r++;
+    else{
+        freeze();
+        current=next;
+        next=newBlock();
+        drawPreview();
+        if(!canMove(current.r,current.col,current.m)){
+            clearInterval(interval);
+            alert("게임 오버!\n점수: "+score);
+            current=null;
         }
     }
+    draw();
+}
 
-    if (currentBlock) {
-        currentBlock.matrix.forEach((row, r) => {
-            row.forEach((value, c) => {
-                if (value) {
-                    const idx = (currentBlock.row + r) * COLS + (currentBlock.col + c);
-                    if (gameBoard.children[idx]) {
-                        gameBoard.children[idx].classList.add('block', currentBlock.color);
-                    }
+function draw(){
+    board.innerHTML='';
+    for(let r=0;r<ROWS;r++)
+        for(let c=0;c<COLS;c++){
+            const d=document.createElement('div');
+            d.className='cell'+(grid[r][c]?' block '+grid[r][c]:'');
+            board.appendChild(d);
+        }
+
+    if(current){
+        current.m.forEach((row,y)=>{
+            row.forEach((v,x)=>{
+                if(v){
+                    const i=(current.r+y)*COLS+(current.col+x);
+                    if(board.children[i])
+                        board.children[i].classList.add('block',current.c);
                 }
             });
         });
     }
 }
 
-function drawNextPreview() {
-    nextPreview.innerHTML = '';
-    for (let i = 0; i < 16; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'preview-cell';
-        nextPreview.appendChild(cell);
-    }
-
-    nextBlockData.matrix.forEach((row, r) => {
-        row.forEach((val, c) => {
-            if (val) {
-                nextPreview.children[r * 4 + c].classList.add('block', nextBlockData.color);
-            }
+function drawPreview(){
+    preview.innerHTML='';
+    for(let i=0;i<16;i++) preview.appendChild(document.createElement('div'));
+    next.m.forEach((row,y)=>{
+        row.forEach((v,x)=>{
+            if(v) preview.children[y*4+x].classList.add('block',next.c);
         });
     });
 }
 
-document.addEventListener('keydown', e => {
-    if (!currentBlock) return;
+/* 키보드 */
+document.addEventListener('keydown',e=>{
+    if(!current) return;
+    if(e.key==='ArrowLeft'&&canMove(current.r,current.col-1,current.m)) current.col--;
+    if(e.key==='ArrowRight'&&canMove(current.r,current.col+1,current.m)) current.col++;
+    if(e.key==='ArrowDown') down();
+    if(e.key==='ArrowUp'){
+        const rot=current.m[0].map((_,i)=>current.m.map(r=>r[i]).reverse());
+        if(canMove(current.r,current.col,rot)) current.m=rot;
+    }
+    if(e.key===' '){
+        while(canMove(current.r+1,current.col,current.m)) current.r++;
+        down();
+    }
+    draw();
+});
 
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) {
+/* 모바일 버튼 */
+document.querySelectorAll('.mobile-controls button').forEach(b=>{
+    b.addEventListener('touchstart',e=>{
         e.preventDefault();
-    }
-
-    if (e.key === 'ArrowLeft' && canMove(currentBlock.row, currentBlock.col - 1, currentBlock.matrix)) {
-        currentBlock.col--;
-    } else if (e.key === 'ArrowRight' && canMove(currentBlock.row, currentBlock.col + 1, currentBlock.matrix)) {
-        currentBlock.col++;
-    } else if (e.key === 'ArrowDown') {
-        moveBlockDown();
-    } else if (e.key === 'ArrowUp') {
-        const rotated = currentBlock.matrix[0].map((_, i) =>
-            currentBlock.matrix.map(row => row[i]).reverse()
-        );
-        if (canMove(currentBlock.row, currentBlock.col, rotated)) {
-            currentBlock.matrix = rotated;
+        if(!current) return;
+        const a=b.dataset.action;
+        if(a==='left'&&canMove(current.r,current.col-1,current.m)) current.col--;
+        if(a==='right'&&canMove(current.r,current.col+1,current.m)) current.col++;
+        if(a==='down') down();
+        if(a==='rotate'){
+            const rot=current.m[0].map((_,i)=>current.m.map(r=>r[i]).reverse());
+            if(canMove(current.r,current.col,rot)) current.m=rot;
         }
-    } else if (e.key === ' ') {
-        while (canMove(currentBlock.row + 1, currentBlock.col, currentBlock.matrix)) {
-            currentBlock.row++;
+        if(a==='drop'){
+            while(canMove(current.r+1,current.col,current.m)) current.r++;
+            down();
         }
-        moveBlockDown();
-    }
-    render();
+        draw();
+    });
 });
 
-startButton.addEventListener('click', () => {
-    initBoard();
-    currentBlock = createNewBlock();
-    nextBlockData = createNewBlock();
-    drawNextPreview();
-    render(); // ⭐ 핵심 수정
-
-    if (gameInterval) clearInterval(gameInterval);
-    gameInterval = setInterval(moveBlockDown, 800);
-});
+startBtn.onclick=()=>{
+    init();
+    current=newBlock();
+    next=newBlock();
+    drawPreview();
+    draw();
+    clearInterval(interval);
+    interval=setInterval(down,800);
+};
 </script>
 
 </body>
