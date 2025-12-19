@@ -5,15 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>릴라의 테트리스</title>
     <style>
-        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #282c34; color: white; font-family: 'Malgun Gothic', sans-serif; margin: 0; overflow: hidden; /* 페이지 스크롤 방지 */ }
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #282c34; color: white; font-family: 'Malgun Gothic', sans-serif; margin: 0; overflow: hidden; }
         .game-container { display: flex; gap: 30px; padding: 20px; border: 5px solid #61dafb; background-color: #383c44; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         #game-board { display: grid; grid-template-columns: repeat(10, 30px); grid-template-rows: repeat(20, 30px); width: 300px; height: 600px; border: 2px solid #aaa; background-color: #000; }
-        .cell { width: 100%; height: 100%; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.05); }
+        
+        /* 다음 블록 미리보기 창 */
+        .next-preview { width: 100px; height: 100px; background: #111; border: 2px solid #555; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); margin: 10px auto; }
+        
+        .cell { width: 30px; height: 30px; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .preview-cell { width: 25px; height: 25px; border: 1px solid rgba(255,255,255,0.05); }
         .block { border: 2px solid rgba(0, 0, 0, 0.3); box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4); }
+        
+        /* 색상 정의 */
         .i-block { background-color: #00f0f0; } .j-block { background-color: #0000f0; }
         .l-block { background-color: #f0a000; } .o-block { background-color: #f0f000; }
         .s-block { background-color: #00f000; } .t-block { background-color: #a000f0; }
         .z-block { background-color: #f00000; }
+
         .info-panel { width: 180px; display: flex; flex-direction: column; gap: 15px; text-align: center; }
         h2 { color: #61dafb; margin-top: 0; }
         #start-button { padding: 12px 20px; font-size: 1.1em; cursor: pointer; background-color: #61dafb; border: none; border-radius: 4px; font-weight: bold; transition: 0.2s; }
@@ -26,30 +34,29 @@
         <div id="game-board"></div>
         <div class="info-panel">
             <h2>릴라의 테트리스</h2>
+            <div style="background:#222; padding: 5px; border-radius: 5px;">
+                <div style="font-size: 0.8em; margin-bottom: 5px;">NEXT</div>
+                <div id="next-preview" class="next-preview"></div>
+            </div>
             <hr style="border: 0.5px solid #555; width: 100%;">
             <h3>Score: <span id="score">0</span></h3>
             <div class="controls-info">
                 <strong>[ 조작 방법 ]</strong><br>
-                ← → : 좌우 이동<br>
-                ↑ : 블록 회전<br>
-                ↓ : 한 칸 빨리 내리기<br>
-                Space : 한 번에 내리기
+                ← → : 이동 / ↑ : 회전<br>
+                ↓ : 내리기 / Space : 낙하
             </div>
             <button id="start-button">게임 시작</button>
         </div>
     </div>
 
     <script>
-        const COLS = 10;
-        const ROWS = 20;
+        const COLS = 10, ROWS = 20;
         const gameBoard = document.getElementById('game-board');
+        const nextPreview = document.getElementById('next-preview');
         const scoreDisplay = document.getElementById('score');
         const startButton = document.getElementById('start-button');
         
-        let gameGrid = [];
-        let score = 0;
-        let currentBlock = null; 
-        let gameInterval = null;
+        let gameGrid = [], score = 0, currentBlock = null, nextBlockData = null, gameInterval = null;
 
         const TETROMINOES = [
             { matrix: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: 'i-block' },
@@ -68,7 +75,7 @@
             render();
         }
 
-        function getRandomBlock() {
+        function createNewBlock() {
             const type = TETROMINOES[Math.floor(Math.random() * TETROMINOES.length)];
             return {
                 matrix: JSON.parse(JSON.stringify(type.matrix)),
@@ -84,24 +91,119 @@
                     if (matrix[r][c]) {
                         let newRow = row + r;
                         let newCol = col + c;
-                        if (newCol < 0 || newCol >= COLS || newRow >= ROWS || (newRow >= 0 && gameGrid[newRow][newCol])) {
-                            return false;
-                        }
+                        if (newCol < 0 || newCol >= COLS || newRow >= ROWS || (newRow >= 0 && gameGrid[newRow][newCol])) return false;
                     }
                 }
             }
             return true;
         }
 
+        function moveBlockDown() {
+            if (canMove(currentBlock.row + 1, currentBlock.col, currentBlock.matrix)) {
+                currentBlock.row++;
+            } else {
+                freeze();
+                currentBlock = nextBlockData;
+                nextBlockData = createNewBlock();
+                drawNextPreview();
+                if (!canMove(currentBlock.row, currentBlock.col, currentBlock.matrix)) {
+                    alert("릴라의 테트리스 - 게임 오버!\n최종 점수: " + score);
+                    clearInterval(gameInterval);
+                    currentBlock = null;
+                }
+            }
+            render();
+        }
+
         function freeze() {
             currentBlock.matrix.forEach((row, r) => {
                 row.forEach((value, c) => {
-                    if (value) {
-                        const boardRow = currentBlock.row + r;
-                        if (boardRow >= 0) gameGrid[boardRow][currentBlock.col + c] = currentBlock.color;
+                    if (value && currentBlock.row + r >= 0) {
+                        gameGrid[currentBlock.row + r][currentBlock.col + c] = currentBlock.color;
                     }
                 });
             });
-
             for (let r = ROWS - 1; r >= 0; r--) {
                 if (gameGrid[r].every(cell => cell !== 0)) {
+                    gameGrid.splice(r, 1);
+                    gameGrid.unshift(Array(COLS).fill(0));
+                    score += 100;
+                    scoreDisplay.textContent = score;
+                    r++;
+                }
+            }
+        }
+
+        function render() {
+            gameBoard.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell' + (gameGrid[r][c] ? ' block ' + gameGrid[r][c] : '');
+                    gameBoard.appendChild(cell);
+                }
+            }
+            if (currentBlock) {
+                currentBlock.matrix.forEach((row, r) => {
+                    row.forEach((value, c) => {
+                        if (value) {
+                            const boardRow = currentBlock.row + r;
+                            const boardCol = currentBlock.col + c;
+                            if (boardRow >= 0 && boardRow < ROWS && boardCol >= 0 && boardCol < COLS) {
+                                const idx = boardRow * COLS + boardCol;
+                                gameBoard.children[idx].classList.add('block', currentBlock.color);
+                            }
+                        }
+                    });
+                });
+            }
+        }
+
+        function drawNextPreview() {
+            nextPreview.innerHTML = '';
+            for(let i=0; i<16; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'preview-cell';
+                nextPreview.appendChild(cell);
+            }
+            nextBlockData.matrix.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    if(val) {
+                        const idx = r * 4 + c;
+                        nextPreview.children[idx].classList.add('block', nextBlockData.color);
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!currentBlock) return;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+
+            if (e.key === 'ArrowLeft' && canMove(currentBlock.row, currentBlock.col - 1, currentBlock.matrix)) currentBlock.col--;
+            else if (e.key === 'ArrowRight' && canMove(currentBlock.row, currentBlock.col + 1, currentBlock.matrix)) currentBlock.col++;
+            else if (e.key === 'ArrowDown') moveBlockDown();
+            else if (e.key === 'ArrowUp') {
+                const rotated = currentBlock.matrix[0].map((_, i) => currentBlock.matrix.map(row => row[i]).reverse());
+                if (canMove(currentBlock.row, currentBlock.col, rotated)) currentBlock.matrix = rotated;
+            } else if (e.key === ' ') {
+                while (canMove(currentBlock.row + 1, currentBlock.col, currentBlock.matrix)) currentBlock.row++;
+                moveBlockDown();
+            }
+            render();
+        });
+
+        startButton.addEventListener('click', () => {
+            initBoard();
+            currentBlock = createNewBlock();
+            nextBlockData = createNewBlock();
+            drawNextPreview();
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(moveBlockDown, 800);
+            startButton.blur();
+        });
+
+        initBoard();
+    </script>
+</body>
+</html>
